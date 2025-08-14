@@ -11,13 +11,14 @@ class PharmacyCustomerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MediCare Pharmacy',
+      title: 'Pharma One - Admin Dashboard',
       theme: ThemeData(
         primarySwatch: Colors.green,
+        fontFamily: 'Segoe UI',
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: AdminDashboard(),
       debugShowCheckedModeBanner: false,
+      home: AdminDashboard(),
     );
   }
 }

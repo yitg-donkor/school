@@ -1,24 +1,24 @@
-// server.js - Fixed with correct column names and response formats
+// server.js - Updated with Dashboard Stats and Missing APIs
 const express = require("express");
 const mysql = require("mysql2/promise");
 const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Node.js HTTP server port
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Database configuration - UPDATED FOR YOUR MYSQL PORT
+// Database configuration
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 3300, // YOUR MySQL port
+  port: process.env.DB_PORT || 3300,
   user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "2045", // Add your MySQL password
-  database: process.env.DB_NAME || "pharmacy_database", // Add your MySQL database name
-  connectionLimit: 10, // Connection pool limit
+  password: process.env.DB_PASSWORD || "2045",
+  database: process.env.DB_NAME || "pharmacy_database",
+  connectionLimit: 10,
   acquireTimeout: 60000,
   timeout: 60000,
 };
@@ -34,14 +34,12 @@ async function testConnection() {
     connection.release();
   } catch (error) {
     console.error("❌ Database connection failed:", error.message);
-    console.error("Check your MySQL server, credentials, and database name");
   }
 }
 
-// Test connection on startup
 testConnection();
 
-// Helper function to execute queries with better error handling
+// Helper function to execute queries
 async function executeQuery(query, params = []) {
   let connection;
   try {
@@ -56,7 +54,7 @@ async function executeQuery(query, params = []) {
   }
 }
 
-// Add a health check endpoint
+// Health check endpoint
 app.get("/api/health", async (req, res) => {
   try {
     await executeQuery("SELECT 1");
@@ -74,13 +72,123 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// DASHBOARD STATS ROUTE
+// DASHBOARD STATS ROUTE
+app.get("/api/dashboard/stats", async (req, res) => {
+  try {
+    // Get total medicines
+    const [totalMedicines] = await executeQuery(
+      "SELECT COUNT(*) as count FROM product"
+    );
+
+    // Get medicines available (quantity > 0)
+    const [medicinesAvailable] = await executeQuery(
+      "SELECT COUNT(*) as count FROM product WHERE prod_quantity > 0"
+    );
+
+    // Get medicine shortage (quantity <= 10)
+    const [medicineShortage] = await executeQuery(
+      "SELECT COUNT(*) as count FROM product WHERE prod_quantity <= 10"
+    );
+
+    // Get total revenue from sales
+    const [totalRevenue] = await executeQuery(
+      "SELECT COALESCE(SUM(total_cost), 0) as revenue FROM sale"
+    );
+
+    // Get medicine groups (count of suppliers as proxy)
+    const [medicineGroups] = await executeQuery(
+      "SELECT COUNT(*) as count FROM supplier"
+    );
+
+    // Get total quantity of medicines sold
+    const [qtyMedicinesSold] = await executeQuery(
+      "SELECT COALESCE(SUM(prod_quantity), 0) as quantity FROM sale"
+    );
+
+    // Get invoices generated (total sales count)
+    const [invoicesGenerated] = await executeQuery(
+      "SELECT COUNT(*) as count FROM sale"
+    );
+
+    // Get total suppliers
+    const [totalSuppliers] = await executeQuery(
+      "SELECT COUNT(*) as count FROM supplier"
+    );
+
+    // Get total users (employees)
+    const [totalUsers] = await executeQuery(
+      "SELECT COUNT(*) as count FROM employee"
+    );
+
+    // Get total customers
+    const [totalCustomers] = await executeQuery(
+      "SELECT COUNT(*) as count FROM customer"
+    );
+
+    // Get most frequent item (most sold product)
+    const [frequentItem] = await executeQuery(`
+      SELECT p.prod_name, SUM(s.prod_quantity) as total_sold
+      FROM sale s
+      JOIN product p ON s.prod_id = p.prod_id
+      GROUP BY s.prod_id, p.prod_name
+      ORDER BY total_sold DESC
+      LIMIT 1
+    `);
+
+    const stats = {
+      inventoryStatus:
+        medicineShortage.count > 5
+          ? "Critical"
+          : medicineShortage.count > 2
+          ? "Warning"
+          : "Good",
+      revenue: totalRevenue.revenue || 0,
+      medicinesAvailable: medicinesAvailable.count || 0,
+      medicineShortage: medicineShortage.count || 0,
+      totalMedicines: totalMedicines.count || 0,
+      medicineGroups: medicineGroups.count || 0,
+      qtyMedicinesSold: qtyMedicinesSold.quantity || 0,
+      invoicesGenerated: invoicesGenerated.count || 0,
+      totalSuppliers: totalSuppliers.count || 0,
+      totalUsers: totalUsers.count || 0,
+      totalCustomers: totalCustomers.count || 0,
+      frequentItem: frequentItem ? frequentItem.prod_name : "None",
+    };
+
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: {
+        inventoryStatus: "Unknown",
+        revenue: 0,
+        medicinesAvailable: 0,
+        medicineShortage: 0,
+        totalMedicines: 0,
+        medicineGroups: 0,
+        qtyMedicinesSold: 0,
+        invoicesGenerated: 0,
+        totalSuppliers: 0,
+        totalUsers: 0,
+        totalCustomers: 0,
+        frequentItem: "Unknown",
+      },
+    });
+  }
+});
+
 // PHARMACY ROUTES
 app.get("/api/pharmacies", async (req, res) => {
   try {
     const pharmacies = await executeQuery(
       "SELECT * FROM pharmacy ORDER BY pharm_id"
     );
-    // Map to match Flutter column expectations
     const mappedPharmacies = pharmacies.map((p) => ({
       pharmacy_id: p.pharm_id,
       name: p.pharm_name,
@@ -97,14 +205,11 @@ app.get("/api/pharmacies", async (req, res) => {
 app.post("/api/pharmacies", async (req, res) => {
   try {
     const { name, address, contact } = req.body;
-
-    // Validate required fields
     if (!name) {
       return res
         .status(400)
         .json({ success: false, error: "Name is required" });
     }
-
     await executeQuery(
       "INSERT INTO pharmacy (pharm_name, pharm_address, pharm_contact) VALUES (?, ?, ?)",
       [name, address, contact]
@@ -120,13 +225,11 @@ app.put("/api/pharmacies/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { name, address, contact } = req.body;
-
     if (!name) {
       return res
         .status(400)
         .json({ success: false, error: "Name is required" });
     }
-
     await executeQuery(
       "UPDATE pharmacy SET pharm_name = ?, pharm_address = ?, pharm_contact = ? WHERE pharm_id = ?",
       [name, address, contact, id]
@@ -158,7 +261,6 @@ app.get("/api/branches", async (req, res) => {
       LEFT JOIN pharmacy p ON b.pharm_id = p.pharm_id 
       ORDER BY b.brch_id
     `);
-    // Map to match Flutter column expectations
     const mappedBranches = branches.map((b) => ({
       branch_id: b.brch_id,
       pharmacy_id: b.pharm_id,
@@ -177,14 +279,12 @@ app.get("/api/branches", async (req, res) => {
 app.post("/api/branches", async (req, res) => {
   try {
     const { pharmacy_id, name, address, contact } = req.body;
-
     if (!name || !pharmacy_id) {
       return res.status(400).json({
         success: false,
         error: "Name and pharmacy_id are required",
       });
     }
-
     await executeQuery(
       "INSERT INTO branch (pharm_id, brch_name, brch_address, brch_contact) VALUES (?, ?, ?, ?)",
       [pharmacy_id, name, address, contact]
@@ -231,7 +331,6 @@ app.get("/api/employees", async (req, res) => {
       LEFT JOIN branch b ON e.brch_id = b.brch_id 
       ORDER BY e.emp_id
     `);
-    // Map to match Flutter column expectations
     const mappedEmployees = employees.map((e) => ({
       employee_id: e.emp_id,
       branch_id: e.brch_id,
@@ -253,14 +352,12 @@ app.post("/api/employees", async (req, res) => {
   try {
     const { branch_id, name, position, email, contact, address, password } =
       req.body;
-
     if (!name || !branch_id) {
       return res.status(400).json({
         success: false,
         error: "Name and branch_id are required",
       });
     }
-
     await executeQuery(
       "INSERT INTO employee (brch_id, emp_name, emp_position, emp_email, emp_contact, emp_address, emp_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [branch_id, name, position, email, contact, address, password]
@@ -307,7 +404,6 @@ app.get("/api/products", async (req, res) => {
       LEFT JOIN supplier s ON p.supp_id = s.supp_id 
       ORDER BY p.prod_id
     `);
-    // Map to match Flutter column expectations
     const mappedProducts = products.map((p) => ({
       product_id: p.prod_id,
       supplier_id: p.supp_id,
@@ -328,13 +424,11 @@ app.post("/api/products", async (req, res) => {
   try {
     const { supplier_id, name, unit_price, quantity, latest_expiry_date } =
       req.body;
-
     if (!name) {
       return res
         .status(400)
         .json({ success: false, error: "Name is required" });
     }
-
     await executeQuery(
       "INSERT INTO product (supp_id, prod_name, prod_unit_price, prod_quantity, prod_latest_expiry_date) VALUES (?, ?, ?, ?, ?)",
       [supplier_id, name, unit_price, quantity, latest_expiry_date]
@@ -379,7 +473,6 @@ app.get("/api/suppliers", async (req, res) => {
     const suppliers = await executeQuery(
       "SELECT * FROM supplier ORDER BY supp_id"
     );
-    // Map to match Flutter column expectations
     const mappedSuppliers = suppliers.map((s) => ({
       supplier_id: s.supp_id,
       name: s.supp_name,
@@ -396,13 +489,11 @@ app.get("/api/suppliers", async (req, res) => {
 app.post("/api/suppliers", async (req, res) => {
   try {
     const { name, contact, product_type } = req.body;
-
     if (!name) {
       return res
         .status(400)
         .json({ success: false, error: "Name is required" });
     }
-
     await executeQuery(
       "INSERT INTO supplier (supp_name, supp_contact, supp_product_type) VALUES (?, ?, ?)",
       [name, contact, product_type]
@@ -446,7 +537,6 @@ app.get("/api/customers", async (req, res) => {
     const customers = await executeQuery(
       "SELECT * FROM customer ORDER BY cust_id"
     );
-    // Map to match Flutter column expectations
     const mappedCustomers = customers.map((c) => ({
       customer_id: c.cust_id,
       name: c.cust_name,
@@ -462,13 +552,11 @@ app.get("/api/customers", async (req, res) => {
 app.post("/api/customers", async (req, res) => {
   try {
     const { name, contact } = req.body;
-
     if (!name) {
       return res
         .status(400)
         .json({ success: false, error: "Name is required" });
     }
-
     await executeQuery(
       "INSERT INTO customer (cust_name, cust_contact) VALUES (?, ?)",
       [name, contact]
@@ -517,7 +605,6 @@ app.get("/api/sales", async (req, res) => {
       LEFT JOIN product p ON s.prod_id = p.prod_id 
       ORDER BY s.sale_id DESC
     `);
-    // Map to match Flutter column expectations
     const mappedSales = sales.map((s) => ({
       sale_id: s.sale_id,
       employee_id: s.emp_id,
@@ -575,6 +662,234 @@ app.post("/api/sales", async (req, res) => {
     res.json({ success: true, message: "Sale added successfully" });
   } catch (error) {
     console.error("Error adding sale:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// RECEIPT ROUTES
+app.get("/api/receipts", async (req, res) => {
+  try {
+    const receipts = await executeQuery(
+      "SELECT * FROM receipt ORDER BY recpt_number"
+    );
+    const mappedReceipts = receipts.map((r) => ({
+      receipt_number: r.recpt_number,
+      pharm_name: r.pharm_name,
+      sale_id: r.sale_id,
+      prod_name: r.prod_name,
+      prod_quantity: r.prod_quantity,
+      total_amount: r.total_amount,
+    }));
+    res.json(mappedReceipts);
+  } catch (error) {
+    console.error("Error fetching receipts:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/receipts", async (req, res) => {
+  try {
+    const {
+      receipt_number,
+      pharm_name,
+      sale_id,
+      prod_name,
+      prod_quantity,
+      total_amount,
+    } = req.body;
+    if (!receipt_number) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Receipt number is required" });
+    }
+    await executeQuery(
+      "INSERT INTO receipt (recpt_number, pharm_name, sale_id, prod_name, prod_quantity, total_amount) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        receipt_number,
+        pharm_name,
+        sale_id,
+        prod_name,
+        prod_quantity,
+        total_amount,
+      ]
+    );
+    res.json({ success: true, message: "Receipt added successfully" });
+  } catch (error) {
+    console.error("Error adding receipt:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put("/api/receipts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pharm_name, sale_id, prod_name, prod_quantity, total_amount } =
+      req.body;
+    await executeQuery(
+      "UPDATE receipt SET pharm_name = ?, sale_id = ?, prod_name = ?, prod_quantity = ?, total_amount = ? WHERE recpt_number = ?",
+      [pharm_name, sale_id, prod_name, prod_quantity, total_amount, id]
+    );
+    res.json({ success: true, message: "Receipt updated successfully" });
+  } catch (error) {
+    console.error("Error updating receipt:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete("/api/receipts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await executeQuery("DELETE FROM receipt WHERE recpt_number = ?", [id]);
+    res.json({ success: true, message: "Receipt deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting receipt:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ATTENDANCE ROUTES
+app.get("/api/attendance", async (req, res) => {
+  try {
+    const attendance = await executeQuery(`
+      SELECT a.*, e.emp_name 
+      FROM attendance a 
+      LEFT JOIN employee e ON a.emp_id = e.emp_id 
+      ORDER BY a.attnd_id DESC
+    `);
+    const mappedAttendance = attendance.map((a) => ({
+      attnd_id: a.attnd_id,
+      emp_id: a.emp_id,
+      date: a.date,
+      check_in_time: a.check_in_time,
+      check_out_time: a.check_out_time,
+      emp_name: a.emp_name,
+    }));
+    res.json(mappedAttendance);
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/attendance", async (req, res) => {
+  try {
+    const { emp_id, date, check_in_time, check_out_time } = req.body;
+    if (!emp_id || !date) {
+      return res.status(400).json({
+        success: false,
+        error: "Employee ID and date are required",
+      });
+    }
+    await executeQuery(
+      "INSERT INTO attendance (emp_id, date, check_in_time, check_out_time) VALUES (?, ?, ?, ?)",
+      [emp_id, date, check_in_time, check_out_time]
+    );
+    res.json({ success: true, message: "Attendance added successfully" });
+  } catch (error) {
+    console.error("Error adding attendance:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put("/api/attendance/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { emp_id, date, check_in_time, check_out_time } = req.body;
+    await executeQuery(
+      "UPDATE attendance SET emp_id = ?, date = ?, check_in_time = ?, check_out_time = ? WHERE attnd_id = ?",
+      [emp_id, date, check_in_time, check_out_time, id]
+    );
+    res.json({ success: true, message: "Attendance updated successfully" });
+  } catch (error) {
+    console.error("Error updating attendance:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete("/api/attendance/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await executeQuery("DELETE FROM attendance WHERE attnd_id = ?", [id]);
+    res.json({ success: true, message: "Attendance deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting attendance:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// SUPPLIER PRODUCT ROUTES
+app.get("/api/supplier-products", async (req, res) => {
+  try {
+    const supplierProducts = await executeQuery(`
+      SELECT sp.*, s.supp_name 
+      FROM supplier_product sp 
+      LEFT JOIN supplier s ON sp.supp_id = s.supp_id 
+      ORDER BY sp.supp_pro_id
+    `);
+    const mappedSupplierProducts = supplierProducts.map((sp) => ({
+      supp_pro_id: sp.supp_pro_id,
+      supp_id: sp.supp_id,
+      supp_prod_price: sp.supp_prod_price,
+      updated_at: sp.updated_at,
+      supp_name: sp.supp_name,
+    }));
+    res.json(mappedSupplierProducts);
+  } catch (error) {
+    console.error("Error fetching supplier products:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/supplier-products", async (req, res) => {
+  try {
+    const { supp_id, supp_prod_price } = req.body;
+    if (!supp_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Supplier ID is required",
+      });
+    }
+    await executeQuery(
+      "INSERT INTO supplier_product (supp_id, supp_prod_price) VALUES (?, ?)",
+      [supp_id, supp_prod_price]
+    );
+    res.json({ success: true, message: "Supplier product added successfully" });
+  } catch (error) {
+    console.error("Error adding supplier product:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put("/api/supplier-products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { supp_id, supp_prod_price } = req.body;
+    await executeQuery(
+      "UPDATE supplier_product SET supp_id = ?, supp_prod_price = ?, updated_at = CURRENT_TIMESTAMP WHERE supp_pro_id = ?",
+      [supp_id, supp_prod_price, id]
+    );
+    res.json({
+      success: true,
+      message: "Supplier product updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating supplier product:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete("/api/supplier-products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await executeQuery("DELETE FROM supplier_product WHERE supp_pro_id = ?", [
+      id,
+    ]);
+    res.json({
+      success: true,
+      message: "Supplier product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting supplier product:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
