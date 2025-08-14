@@ -1,4 +1,4 @@
-// Enhanced SalesPage with dropdown selections
+// Fixed SalesPage with proper widget structure
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -27,7 +27,7 @@ class SalesPage extends StatelessWidget {
   }
 }
 
-// New StatefulWidget for the sale dialog
+// Fixed StatefulWidget for the sale dialog
 class SaleDialogWidget extends StatefulWidget {
   final Map<String, dynamic> item;
 
@@ -84,67 +84,193 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
 
   Future<void> _loadEmployees() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:3000/api/employees'),
-      );
+      print('📞 Loading employees from API...');
+      final response = await http
+          .get(
+            Uri.parse('http://localhost:3000/api/employees'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(Duration(seconds: 10));
+
+      print('👥 Employees Response Status: ${response.statusCode}');
+      print('👥 Employees Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          employees = List<Map<String, dynamic>>.from(
-            data is List ? data : [data],
-          );
-          isLoadingEmployees = false;
-        });
+
+        List<Map<String, dynamic>> employeeList = [];
+
+        // Handle different response formats
+        if (data is List) {
+          employeeList = List<Map<String, dynamic>>.from(data);
+        } else if (data is Map) {
+          // Check if it's wrapped in a success response
+          if (data['success'] == true && data['data'] is List) {
+            employeeList = List<Map<String, dynamic>>.from(data['data']);
+          } else if (data['success'] == true && data['data'] is Map) {
+            employeeList = [Map<String, dynamic>.from(data['data'])];
+          } else {
+            employeeList = [Map<String, dynamic>.from(data)];
+          }
+        }
+
+        print('👥 Processed ${employeeList.length} employees');
+        if (mounted) {
+          setState(() {
+            employees = employeeList;
+            isLoadingEmployees = false;
+          });
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Error loading employees: $e');
-      setState(() {
-        isLoadingEmployees = false;
-      });
+      print('❌ Error loading employees: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingEmployees = false;
+          employees = []; // Set empty list on error
+        });
+
+        // Show error to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load employees: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _loadCustomers() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:3000/api/customers'),
-      );
+      print('📞 Loading customers from API...');
+      final response = await http
+          .get(
+            Uri.parse('http://localhost:3000/api/customers'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(Duration(seconds: 10));
+
+      print('👤 Customers Response Status: ${response.statusCode}');
+      print('👤 Customers Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          customers = List<Map<String, dynamic>>.from(
-            data is List ? data : [data],
-          );
-          isLoadingCustomers = false;
-        });
+
+        List<Map<String, dynamic>> customerList = [];
+
+        // Handle different response formats
+        if (data is List) {
+          customerList = List<Map<String, dynamic>>.from(data);
+        } else if (data is Map) {
+          // Check if it's wrapped in a success response
+          if (data['success'] == true && data['data'] is List) {
+            customerList = List<Map<String, dynamic>>.from(data['data']);
+          } else if (data['success'] == true && data['data'] is Map) {
+            customerList = [Map<String, dynamic>.from(data['data'])];
+          } else {
+            customerList = [Map<String, dynamic>.from(data)];
+          }
+        }
+
+        print('👤 Processed ${customerList.length} customers');
+        if (mounted) {
+          setState(() {
+            customers = customerList;
+            isLoadingCustomers = false;
+          });
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Error loading customers: $e');
-      setState(() {
-        isLoadingCustomers = false;
-      });
+      print('❌ Error loading customers: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingCustomers = false;
+          customers = []; // Set empty list on error
+        });
+
+        // Show error to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load customers: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _loadProducts() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:3000/api/products'),
-      );
+      print('📞 Loading products from API...');
+      final response = await http
+          .get(
+            Uri.parse('http://localhost:3000/api/products'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(Duration(seconds: 10));
+
+      print('📦 Products Response Status: ${response.statusCode}');
+      print('📦 Products Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          products = List<Map<String, dynamic>>.from(
-            data is List ? data : [data],
-          );
-          isLoadingProducts = false;
-        });
+
+        List<Map<String, dynamic>> productList = [];
+
+        // Handle different response formats
+        if (data is List) {
+          productList = List<Map<String, dynamic>>.from(data);
+        } else if (data is Map) {
+          // Check if it's wrapped in a success response
+          if (data['success'] == true && data['data'] is List) {
+            productList = List<Map<String, dynamic>>.from(data['data']);
+          } else if (data['success'] == true && data['data'] is Map) {
+            productList = [Map<String, dynamic>.from(data['data'])];
+          } else {
+            productList = [Map<String, dynamic>.from(data)];
+          }
+        }
+
+        print('📦 Processed ${productList.length} products');
+        if (mounted) {
+          setState(() {
+            products = productList;
+            isLoadingProducts = false;
+          });
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Error loading products: $e');
-      setState(() {
-        isLoadingProducts = false;
-      });
+      print('❌ Error loading products: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingProducts = false;
+          products = []; // Set empty list on error
+        });
+
+        // Show error to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load products: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -182,6 +308,7 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
       ),
       content: Container(
         width: 450,
+        constraints: BoxConstraints(maxHeight: 600), // Add height constraint
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -367,27 +494,31 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
                     items.map((item) {
                       return DropdownMenuItem<T>(
                         value: item[valueKey] as T,
-                        child: Row(
-                          children: [
-                            Text(
-                              'ID: ${item[valueKey]} - ',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
+                        child: Container(
+                          width: 350, // Fixed width to prevent overflow
+                          child: Row(
+                            children: [
+                              Text(
+                                'ID: ${item[valueKey]} - ',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                item[displayKey]?.toString() ?? 'Unknown',
-                                overflow: TextOverflow.ellipsis,
+                              Flexible(
+                                child: Text(
+                                  item[displayKey]?.toString() ?? 'Unknown',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     }).toList(),
                 onChanged: onChanged,
                 hint: Text('Select ${label.toLowerCase()}'),
+                isExpanded: true, // This prevents overflow issues
               ),
     );
   }
@@ -425,6 +556,7 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
           });
         },
         hint: Text('Select payment method'),
+        isExpanded: true, // This prevents overflow issues
       ),
     );
   }
@@ -488,8 +620,8 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
         );
 
         // Refresh the parent page
-        if (context is Element) {
-          (context as Element).markNeedsBuild();
+        if (context.mounted) {
+          // Trigger a rebuild of the parent widget if possible
         }
       } else {
         throw Exception('Server returned status code: ${response.statusCode}');
