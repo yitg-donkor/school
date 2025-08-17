@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pharmacy Admin Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .dashboard-container {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* Sidebar Styles */
+      .sidebar {
+        width: 280px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 20px;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        transition: transform 0.3s ease;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 40px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #00d4aa, #00a8ff);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+      }
+
+      .logo h1 {
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .nav-menu {
+        list-style: none;
+      }
+
+      .nav-item {
+        margin-bottom: 8px;
+      }
+
+      .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 15px 20px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        transform: translateX(5px);
+      }
+
+      .nav-link::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0;
+        background: linear-gradient(135deg, #00d4aa, #00a8ff);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::before,
+      .nav-link.active::before {
+        width: 4px;
+      }
+
+      .nav-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      /* Main Content */
+      .main-content {
+        flex: 1;
+        margin-left: 280px;
+        padding: 30px;
+      }
+
+      .header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 25px 30px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header-title {
+        color: white;
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #00d4aa, #00a8ff);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ff4560, #ff6b7a);
+        color: white;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #00d4aa, #00e676);
+        color: white;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-sm {
+        padding: 8px 16px;
+        font-size: 12px;
+      }
+
+      /* Content Sections */
+      .content-section {
+        display: none;
+      }
+
+      .content-section.active {
+        display: block;
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #00d4aa, #00a8ff);
+      }
+
+      .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .stat-title {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .stat-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #00d4aa, #00a8ff);
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+      }
+
+      .stat-value {
+        color: white;
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .stat-description {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 14px;
+      }
+
+      /* Charts Section */
+      .charts-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+      }
+
+      .chart-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+      }
+
+      .chart-title {
+        color: white;
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 25px;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 300px;
+      }
+
+      /* Data Tables */
+      .data-table-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+      }
+
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+
+      .table-title {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .search-box {
+        padding: 10px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        width: 250px;
+      }
+
+      .search-box::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        margin-bottom: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      th {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 1px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      td {
+        color: white;
+      }
+
+      .status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .status.good {
+        background: rgba(0, 212, 170, 0.2);
+        color: #00d4aa;
+      }
+
+      .status.warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+      }
+
+      .status.critical {
+        background: rgba(255, 69, 96, 0.2);
+        color: #ff4560;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* Forms */
+      .form-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-group label {
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        padding: 12px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        font-size: 14px;
+      }
+
+      .form-group input::placeholder,
+      .form-group textarea::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        margin-top: 25px;
+      }
+
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+      }
+
+      .modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-title {
+        color: white;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      /* Loading States */
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #00d4aa;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Pagination */
+      .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .pagination button {
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .pagination button:hover,
+      .pagination button.active {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Alert Messages */
+      .alert {
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        display: none;
+      }
+
+      .alert.show {
+        display: block;
+      }
+
+      .alert.success {
+        background: rgba(0, 212, 170, 0.2);
+        border: 1px solid rgba(0, 212, 170, 0.3);
+        color: #00d4aa;
+      }
+
+      .alert.error {
+        background: rgba(255, 69, 96, 0.2);
+        border: 1px solid rgba(255, 69, 96, 0.3);
+        color: #ff4560;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+          z-index: 1000;
+        }
+
+        .sidebar.open {
+          transform: translateX(0);
+        }
+
+        .main-content {
+          margin-left: 0;
+          padding: 20px;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .charts-section {
+          grid-template-columns: 1fr;
+        }
+
+        .table-header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .search-box {
+          width: 100%;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .modal-content {
+          width: 95%;
+          margin: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Sidebar -->
+      <nav class="sidebar">
+        <div class="logo">
+          <div class="logo-icon">💊</div>
+          <h1>PharmaDash</h1>
+        </div>
+
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <div class="nav-link active" data-section="dashboard">
+              <span class="nav-icon">📊</span>
+              Dashboard
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="pharmacies">
+              <span class="nav-icon">🏥</span>
+              Pharmacies
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="branches">
+              <span class="nav-icon">🏪</span>
+              Branches
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="products">
+              <span class="nav-icon">💊</span>
+              Products
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="employees">
+              <span class="nav-icon">👥</span>
+              Employees
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="customers">
+              <span class="nav-icon">👤</span>
+              Customers
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="suppliers">
+              <span class="nav-icon">🏢</span>
+              Suppliers
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="sales">
+              <span class="nav-icon">💰</span>
+              Sales
+            </div>
+          </li>
+          <li class="nav-item">
+            <div class="nav-link" data-section="attendance">
+              <span class="nav-icon">📅</span>
+              Attendance
+            </div>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Alert Messages -->
+        <div id="alertContainer"></div>
+
+        <!-- Dashboard Section -->
+        <section class="content-section active" id="dashboard">
+          <header class="header">
+            <h1 class="header-title">Dashboard Overview</h1>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="refreshData()">
+                🔄 Refresh
+              </button>
+            </div>
+          </header>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid" id="statsGrid">
+            <div class="loading">
+              <div class="spinner"></div>
+            </div>
+          </div>
+
+          <!-- Charts Section -->
+          <div class="charts-section">
+            <div class="chart-card">
+              <h3 class="chart-title">Monthly Revenue Trend</h3>
+              <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <h3 class="chart-title">Inventory Status</h3>
+              <div class="chart-container">
+                <canvas id="inventoryChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Dynamic Content Sections -->
+        <section class="content-section" id="pharmacies">
+          <header class="header">
+            <h1 class="header-title">Pharmacies Management</h1>
+            <div class="header-actions">
+              <button
+                class="btn btn-primary"
+                onclick="openAddModal('pharmacy')"
+              >
+                + Add Pharmacy
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="pharmaciesTable"></div>
+        </section>
+
+        <section class="content-section" id="branches">
+          <header class="header">
+            <h1 class="header-title">Branches Management</h1>
+            <div class="header-actions">
+              <button class="btn btn-primary" onclick="openAddModal('branch')">
+                + Add Branch
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="branchesTable"></div>
+        </section>
+
+        <section class="content-section" id="products">
+          <header class="header">
+            <h1 class="header-title">Products Management</h1>
+            <div class="header-actions">
+              <button class="btn btn-primary" onclick="openAddModal('product')">
+                + Add Product
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="productsTable"></div>
+        </section>
+
+        <section class="content-section" id="employees">
+          <header class="header">
+            <h1 class="header-title">Employees Management</h1>
+            <div class="header-actions">
+              <button
+                class="btn btn-primary"
+                onclick="openAddModal('employee')"
+              >
+                + Add Employee
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="employeesTable"></div>
+        </section>
+
+        <section class="content-section" id="customers">
+          <header class="header">
+            <h1 class="header-title">Customers Management</h1>
+            <div class="header-actions">
+              <button
+                class="btn btn-primary"
+                onclick="openAddModal('customer')"
+              >
+                + Add Customer
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="customersTable"></div>
+        </section>
+
+        <section class="content-section" id="suppliers">
+          <header class="header">
+            <h1 class="header-title">Suppliers Management</h1>
+            <div class="header-actions">
+              <button
+                class="btn btn-primary"
+                onclick="openAddModal('supplier')"
+              >
+                + Add Supplier
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="suppliersTable"></div>
+        </section>
+
+        <section class="content-section" id="sales">
+          <header class="header">
+            <h1 class="header-title">Sales Management</h1>
+            <div class="header-actions">
+              <button class="btn btn-primary" onclick="openAddModal('sale')">
+                + Add Sale
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="salesTable"></div>
+        </section>
+
+        <section class="content-section" id="attendance">
+          <header class="header">
+            <h1 class="header-title">Attendance Management</h1>
+            <div class="header-actions">
+              <button
+                class="btn btn-primary"
+                onclick="openAddModal('attendance')"
+              >
+                + Add Attendance
+              </button>
+            </div>
+          </header>
+          <div class="data-table-container" id="attendanceTable"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="crudModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">Add Item</h3>
+          <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="crudForm">
+          <div id="formFields"></div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal()"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // API Base URL
+      const API_BASE = "http://localhost:3000/api";
+
+      // Global data storage
+      let dashboardData = {};
+      let currentSection = "dashboard";
+      let currentEditId = null;
+      let currentEditType = null;
+
+      // Form field configurations for each entity
+      const formConfigs = {
+        pharmacy: [
+          {
+            name: "name",
+            label: "Pharmacy Name",
+            type: "text",
+            required: true,
+          },
+          { name: "address", label: "Address", type: "textarea" },
+          { name: "contact", label: "Contact", type: "text" },
+        ],
+        branch: [
+          {
+            name: "pharmacy_id",
+            label: "Pharmacy",
+            type: "select",
+            required: true,
+            options: "pharmacies",
+          },
+          { name: "name", label: "Branch Name", type: "text", required: true },
+          { name: "address", label: "Address", type: "textarea" },
+          { name: "contact", label: "Contact", type: "text" },
+        ],
+        product: [
+          {
+            name: "supplier_id",
+            label: "Supplier",
+            type: "select",
+            options: "suppliers",
+          },
+          { name: "name", label: "Product Name", type: "text", required: true },
+          {
+            name: "unit_price",
+            label: "Unit Price",
+            type: "number",
+            step: "0.01",
+          },
+          { name: "quantity", label: "Quantity", type: "number" },
+          { name: "latest_expiry_date", label: "Expiry Date", type: "date" },
+        ],
+        employee: [
+          {
+            name: "branch_id",
+            label: "Branch",
+            type: "select",
+            required: true,
+            options: "branches",
+          },
+          {
+            name: "name",
+            label: "Employee Name",
+            type: "text",
+            required: true,
+          },
+          { name: "position", label: "Position", type: "text" },
+          { name: "email", label: "Email", type: "email" },
+          { name: "contact", label: "Contact", type: "text" },
+          { name: "address", label: "Address", type: "textarea" },
+          { name: "password", label: "Password", type: "password" },
+        ],
+        customer: [
+          {
+            name: "name",
+            label: "Customer Name",
+            type: "text",
+            required: true,
+          },
+          { name: "contact", label: "Contact", type: "text" },
+        ],
+        supplier: [
+          {
+            name: "name",
+            label: "Supplier Name",
+            type: "text",
+            required: true,
+          },
+          { name: "contact", label: "Contact", type: "text" },
+          { name: "product_type", label: "Product Type", type: "text" },
+        ],
+        sale: [
+          {
+            name: "employee_id",
+            label: "Employee",
+            type: "select",
+            required: true,
+            options: "employees",
+          },
+          {
+            name: "customer_id",
+            label: "Customer",
+            type: "select",
+            options: "customers",
+          },
+          {
+            name: "product_id",
+            label: "Product",
+            type: "select",
+            required: true,
+            options: "products",
+          },
+          {
+            name: "quantity",
+            label: "Quantity",
+            type: "number",
+            required: true,
+          },
+          {
+            name: "total_cost",
+            label: "Total Cost",
+            type: "number",
+            step: "0.01",
+          },
+          {
+            name: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "completed", text: "Completed" },
+              { value: "pending", text: "Pending" },
+              { value: "cancelled", text: "Cancelled" },
+            ],
+          },
+          {
+            name: "payment_method",
+            label: "Payment Method",
+            type: "select",
+            options: [
+              { value: "cash", text: "Cash" },
+              { value: "card", text: "Card" },
+              { value: "mobile", text: "Mobile Money" },
+            ],
+          },
+          { name: "receipt_num", label: "Receipt Number", type: "text" },
+        ],
+        attendance: [
+          {
+            name: "emp_id",
+            label: "Employee",
+            type: "select",
+            required: true,
+            options: "employees",
+          },
+          { name: "date", label: "Date", type: "date", required: true },
+          { name: "check_in_time", label: "Check In Time", type: "time" },
+          { name: "check_out_time", label: "Check Out Time", type: "time" },
+        ],
+      };
+
+      // Table column configurations
+      const tableConfigs = {
+        pharmacies: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "address", label: "Address" },
+          { key: "contact", label: "Contact" },
+          { key: "actions", label: "Actions" },
+        ],
+        branches: [
+          { key: "id", label: "ID" },
+          { key: "pharmacy_name", label: "Pharmacy" },
+          { key: "name", label: "Name" },
+          { key: "address", label: "Address" },
+          { key: "contact", label: "Contact" },
+          { key: "actions", label: "Actions" },
+        ],
+        products: [
+          { key: "id", label: "ID" },
+          { key: "supplier_name", label: "Supplier" },
+          { key: "name", label: "Name" },
+          { key: "unit_price", label: "Unit Price" },
+          { key: "quantity", label: "Quantity" },
+          { key: "latest_expiry_date", label: "Expiry Date" },
+          { key: "actions", label: "Actions" },
+        ],
+        employees: [
+          { key: "id", label: "ID" },
+          { key: "branch_name", label: "Branch" },
+          { key: "name", label: "Name" },
+          { key: "position", label: "Position" },
+          { key: "email", label: "Email" },
+          { key: "contact", label: "Contact" },
+          { key: "address", label: "Address" },
+          { key: "actions", label: "Actions" },
+        ],
+        customers: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "contact", label: "Contact" },
+          { key: "actions", label: "Actions" },
+        ],
+        suppliers: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "contact", label: "Contact" },
+          { key: "product_type", label: "Product Type" },
+          { key: "actions", label: "Actions" },
+        ],
+        sales: [
+          { key: "id", label: "ID" },
+          { key: "employee_name", label: "Employee" },
+          { key: "customer_name", label: "Customer" },
+          { key: "product_name", label: "Product" },
+          { key: "quantity", label: "Quantity" },
+          { key: "total_cost", label: "Total Cost" },
+          { key: "status", label: "Status" },
+          { key: "payment_method", label: "Payment Method" },
+          { key: "receipt_num", label: "Receipt Number" },
+          { key: "actions", label: "Actions" },
+        ],
+        attendance: [
+          { key: "id", label: "ID" },
+          { key: "employee_name", label: "Employee" },
+          { key: "date", label: "Date" },
+          { key: "check_in_time", label: "Check In" },
+          { key: "check_out_time", label: "Check Out" },
+          { key: "actions", label: "Actions" },
+        ],
+      };
+
+      // Chart instances
+      let revenueChart;
+      let inventoryChart;
+
+      // Utility functions
+      function capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      }
+
+      function getPlural(singular) {
+        if (singular === "pharmacy") return "pharmacies";
+        if (singular === "branch") return "branches";
+        if (singular === "attendance") return "attendance";
+        return singular + "s";
+      }
+
+      function getStatusClass(status) {
+        if (status === "completed") return "good";
+        if (status === "pending") return "warning";
+        if (status === "cancelled") return "critical";
+        return "";
+      }
+
+      async function fetchOptions(entity) {
+        try {
+          const res = await fetch(`${API_BASE}/${entity}`);
+          return await res.json();
+        } catch (err) {
+          console.error("Failed to fetch options:", err);
+          return [];
+        }
+      }
+
+      function showAlert(type, message) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `alert ${type} show`;
+        alert.textContent = message;
+        container.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+      }
+
+      // Modal functions
+      function openAddModal(type) {
+        currentEditId = null;
+        currentEditType = type;
+        document.getElementById("modalTitle").textContent = `Add ${capitalize(
+          type
+        )}`;
+        document.getElementById("submitBtn").textContent = "Save";
+        renderFormFields(type);
+        document.getElementById("crudModal").classList.add("show");
+      }
+
+      function openEditModal(type, id, data) {
+        currentEditId = id;
+        currentEditType = type;
+        document.getElementById("modalTitle").textContent = `Edit ${capitalize(
+          type
+        )}`;
+        document.getElementById("submitBtn").textContent = "Update";
+        renderFormFields(type, data);
+        document.getElementById("crudModal").classList.add("show");
+      }
+
+      async function renderFormFields(type, data = {}) {
+        const fields = formConfigs[type];
+        let html = '<div class="form-row">';
+        fields.forEach((field) => {
+          html += `<div class="form-group">
+                    <label for="${field.name}">${field.label}${
+            field.required ? " *" : ""
+          }</label>`;
+          if (field.type === "select") {
+            html += `<select id="${field.name}" ${
+              field.required ? "required" : ""
+            }>`;
+            if (Array.isArray(field.options)) {
+              html += '<option value="">Select...</option>';
+              field.options.forEach((opt) => {
+                html += `<option value="${opt.value}" ${
+                  data[field.name] === opt.value ? "selected" : ""
+                }>${opt.text}</option>`;
+              });
+            } else {
+              html += '<option value="">Loading...</option>';
+            }
+            html += "</select>";
+          } else if (field.type === "textarea") {
+            html += `<textarea id="${field.name}" ${
+              field.required ? "required" : ""
+            }>${data[field.name] || ""}</textarea>`;
+          } else {
+            html += `<input type="${field.type}" id="${field.name}" value="${
+              data[field.name] || ""
+            }" ${field.step ? `step="${field.step}"` : ""} ${
+              field.required ? "required" : ""
+            }>`;
+          }
+          html += "</div>";
+        });
+        html += "</div>";
+        document.getElementById("formFields").innerHTML = html;
+
+        // Load select options asynchronously
+        for (const field of fields) {
+          if (field.type === "select" && typeof field.options === "string") {
+            const opts = await fetchOptions(field.options);
+            let optHtml = '<option value="">Select...</option>';
+            opts.forEach((opt) => {
+              optHtml += `<option value="${opt.id}" ${
+                data[field.name] == opt.id ? "selected" : ""
+              }>${opt.name}</option>`;
+            });
+            document.getElementById(field.name).innerHTML = optHtml;
+          }
+        }
+      }
+
+      function closeModal() {
+        document.getElementById("crudModal").classList.remove("show");
+        document.getElementById("crudForm").reset();
+      }
+
+      // CRUD form submission
+      document
+        .getElementById("crudForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = {};
+          formConfigs[currentEditType].forEach((field) => {
+            const el = document.getElementById(field.name);
+            formData[field.name] = el.value;
+            if (field.type === "number")
+              formData[field.name] = parseFloat(el.value) || 0;
+          });
+          try {
+            const plural = getPlural(currentEditType);
+            let url = `${API_BASE}/${plural}`;
+            let method = "POST";
+            if (currentEditId) {
+              url += `/${currentEditId}`;
+              method = "PUT";
+            }
+            const res = await fetch(url, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(formData),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            showAlert(
+              "success",
+              `${capitalize(currentEditType)} ${
+                currentEditId ? "updated" : "added"
+              } successfully!`
+            );
+            closeModal();
+            loadSectionData(currentSection);
+          } catch (err) {
+            showAlert("error", `Operation failed: ${err.message}`);
+          }
+        });
+
+      // Delete function
+      async function deleteItem(type, id) {
+        if (!confirm("Are you sure you want to delete this item?")) return;
+        try {
+          const plural = getPlural(type);
+          const res = await fetch(`${API_BASE}/${plural}/${id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error(await res.text());
+          showAlert("success", `${capitalize(type)} deleted successfully!`);
+          loadSectionData(currentSection);
+        } catch (err) {
+          showAlert("error", `Delete failed: ${err.message}`);
+        }
+      }
+
+      // Table rendering
+      function renderTableHeaders(section) {
+        const thead = document.getElementById(`${section}Thead`);
+        let tr = "<tr>";
+        tableConfigs[section].forEach((col) => {
+          tr += `<th>${col.label}</th>`;
+        });
+        tr += "</tr>";
+        thead.innerHTML = tr;
+      }
+
+      function renderTableBody(section, data) {
+        const tbody = document.getElementById(`${section}Tbody`);
+        tbody.innerHTML = "";
+        data.forEach((row) => {
+          let tr = "<tr>";
+          tableConfigs[section].forEach((col) => {
+            if (col.key === "actions") {
+              tr += `<td class="actions">
+                            <button class="btn btn-sm btn-primary" onclick='openEditModal("${section
+                              .replace(/ies$/, "y")
+                              .replace(/s$/, "")}", ${row.id}, ${JSON.stringify(
+                row
+              )})'>Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick='deleteItem("${section
+                              .replace(/ies$/, "y")
+                              .replace(/s$/, "")}", ${row.id})'>Delete</button>
+                        </td>`;
+            } else if (col.key === "status") {
+              tr += `<td><span class="status ${getStatusClass(row[col.key])}">${
+                row[col.key] || ""
+              }</span></td>`;
+            } else {
+              tr += `<td>${row[col.key] || ""}</td>`;
+            }
+          });
+          tr += "</tr>";
+          tbody.innerHTML += tr;
+        });
+      }
+
+      // Search table
+      function searchTable(query, tableId) {
+        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+        rows.forEach((row) => {
+          row.style.display = row.textContent
+            .toLowerCase()
+            .includes(query.toLowerCase())
+            ? ""
+            : "none";
+        });
+      }
+
+      // Load table data
+      async function loadTable(section) {
+        const container = document.getElementById(`${section}Table`);
+        container.innerHTML = `
+                <div class="table-header">
+                    <input type="text" class="search-box" placeholder="Search..." oninput="searchTable(this.value, '${section}Tbody')">
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead id="${section}Thead"></thead>
+                        <tbody id="${section}Tbody"></tbody>
+                    </table>
+                </div>
+            `;
+        try {
+          const res = await fetch(`${API_BASE}/${section}`);
+          const data = await res.json();
+          renderTableHeaders(section);
+          renderTableBody(section, data);
+        } catch (err) {
+          showAlert("error", `Failed to load ${section}: ${err.message}`);
+        }
+      }
+
+      // Dashboard rendering
+      function renderStats(stats) {
+        const grid = document.getElementById("statsGrid");
+        grid.innerHTML = "";
+
+        if (!Array.isArray(stats)) {
+          grid.innerHTML = '<div class="error">Invalid dashboard data</div>';
+          return;
+        }
+
+        stats.forEach((stat) => {
+          if (!stat || typeof stat !== "object") return;
+
+          grid.innerHTML += `
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <h4 class="stat-title">${stat.title || "Unknown"}</h4>
+                        <div class="stat-icon">${stat.icon || "📊"}</div>
+                    </div>
+                    <div class="stat-value">${stat.value || "0"}</div>
+                    <div class="stat-description">${
+                      stat.description || ""
+                    }</div>
+                </div>
+            `;
+        });
+      }
+
+      function renderRevenueChart(revenue) {
+        const ctx = document.getElementById("revenueChart").getContext("2d");
+        if (revenueChart) revenueChart.destroy();
+        revenueChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: revenue.labels,
+            datasets: [
+              {
+                label: "Revenue",
+                data: revenue.values,
+                borderColor: "#00d4aa",
+                tension: 0.4,
+                fill: true,
+                backgroundColor: "rgba(0, 212, 170, 0.2)",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+          },
+        });
+      }
+
+      function renderInventoryChart(inventory) {
+        const ctx = document.getElementById("inventoryChart").getContext("2d");
+        if (inventoryChart) inventoryChart.destroy();
+        inventoryChart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: inventory.labels,
+            datasets: [
+              {
+                data: inventory.data,
+                backgroundColor: ["#00d4aa", "#ffc107", "#ff4560"],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+          },
+        });
+      }
+
+      // Load dashboard
+      async function loadDashboard() {
+        const grid = document.getElementById("statsGrid");
+        grid.innerHTML =
+          '<div class="loading"><div class="spinner"></div></div>';
+
+        try {
+          const res = await fetch(`${API_BASE}/dashboard`);
+          const data = await res.json();
+
+          // Check if data exists and has the required properties
+          if (!data) {
+            throw new Error("No data received from server");
+          }
+
+          // Create default dashboard data if none exists
+          const defaultStats = [
+            {
+              title: "Total Revenue",
+              icon: "💰",
+              value: `$${stats.revenue.toLocaleString()}`,
+              description: "Total revenue this month",
+            },
+            {
+              title: "Total Orders",
+              icon: "📦",
+              value: "0",
+              description: "Orders this month",
+            },
+            {
+              title: "Products",
+              icon: "💊",
+              value: "0",
+              description: "Total products in inventory",
+            },
+            {
+              title: "Customers",
+              icon: "👥",
+              value: "0",
+              description: "Total registered customers",
+            },
+          ];
+
+          // Use received data or fallback to defaults
+          renderStats(data.stats || defaultStats);
+
+          // Render charts only if data exists
+          if (data.revenue) {
+            renderRevenueChart(data.revenue);
+          }
+
+          if (data.inventory) {
+            renderInventoryChart(data.inventory);
+          }
+        } catch (err) {
+          console.error("Dashboard loading error:", err);
+          grid.innerHTML = `
+                <div class="error">
+                    Failed to load dashboard data. 
+                    <button class="btn btn-secondary" onclick="loadDashboard()">Try Again</button>
+                </div>
+            `;
+        }
+      }
+
+      // Load section data
+      function loadSectionData(section) {
+        if (section === "dashboard") {
+          loadDashboard();
+        } else {
+          loadTable(section);
+        }
+      }
+
+      // Refresh data
+      function refreshData() {
+        loadSectionData("dashboard");
+      }
+
+      // Navigation
+      document.querySelectorAll(".nav-link").forEach((link) => {
+        link.addEventListener("click", () => {
+          document
+            .querySelectorAll(".nav-link")
+            .forEach((l) => l.classList.remove("active"));
+          link.classList.add("active");
+          currentSection = link.dataset.section;
+          document
+            .querySelectorAll(".content-section")
+            .forEach((sec) => sec.classList.remove("active"));
+          document.querySelector(`#${currentSection}`).classList.add("active");
+          loadSectionData(currentSection);
+        });
+      });
+
+      // Initial load
+      window.addEventListener("load", () => {
+        loadSectionData("dashboard");
+      });
+    </script>
+  </body>
+</html>

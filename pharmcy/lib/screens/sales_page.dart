@@ -1,4 +1,4 @@
-// Fixed SalesPage with proper widget structure
+// Fixed SalesPage with proper widget structure and dropdown fix
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -408,7 +408,7 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
               ),
               SizedBox(height: 16),
 
-              // Payment Method Dropdown
+              // Payment Method Dropdown - FIXED
               _buildPaymentMethodDropdown(),
               SizedBox(height: 16),
 
@@ -480,7 +480,10 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
                 ),
               )
               : DropdownButtonFormField<T>(
-                value: value,
+                value:
+                    items.any((item) => item[valueKey] == value)
+                        ? value
+                        : null, // FIX: Only set value if it exists in items
                 decoration: InputDecoration(
                   labelText: label,
                   prefixIcon: Icon(icon),
@@ -524,7 +527,14 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
   }
 
   Widget _buildPaymentMethodDropdown() {
-    final paymentMethods = ['Cash', 'Mobile Money', 'Bank Transfer', 'Card'];
+    // FIXED: Use a Set to ensure unique values and convert to List
+    final paymentMethods =
+        <String>[
+          'Cash',
+          'Mobile Money',
+          'Bank Transfer',
+          'Card',
+        ].toSet().toList(); // Remove duplicates
 
     return Container(
       decoration: BoxDecoration(
@@ -534,9 +544,10 @@ class _SaleDialogWidgetState extends State<SaleDialogWidget> {
       ),
       child: DropdownButtonFormField<String>(
         value:
-            paymentMethodController.text.isNotEmpty
+            paymentMethodController.text.isNotEmpty &&
+                    paymentMethods.contains(paymentMethodController.text)
                 ? paymentMethodController.text
-                : null,
+                : null, // FIX: Only set value if it exists in the list
         decoration: InputDecoration(
           labelText: 'Payment Method',
           prefixIcon: Icon(Icons.payment),

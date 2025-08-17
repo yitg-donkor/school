@@ -8,33 +8,16 @@ import 'package:pharmcy/screens/branches_page.dart';
 import 'package:pharmcy/screens/customers_page.dart';
 import 'package:pharmcy/screens/employees_page.dart';
 import 'package:pharmcy/screens/pharmacies_page.dart';
+import 'package:pharmcy/screens/pharmarcy_report.dart';
 import 'package:pharmcy/screens/products_page.dart';
 import 'package:pharmcy/screens/receipts_page.dart';
 import 'package:pharmcy/screens/sales_page.dart';
 import 'package:pharmcy/screens/suppliers_page.dart';
 import 'package:pharmcy/screens/suppliers_product_page.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pharma One - Admin Dashboard',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        fontFamily: 'Segoe UI',
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      debugShowCheckedModeBanner: false,
-      home: AdminDashboard(),
-    );
-  }
-}
-
 class AdminDashboard extends StatefulWidget {
+  const AdminDashboard({super.key});
+
   @override
   _AdminDashboardState createState() => _AdminDashboardState();
 }
@@ -55,6 +38,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     ReceiptsPage(),
     AttendancePage(),
     SupplierProductPage(),
+    ReportsDashboard(),
   ];
 
   final List<NavigationItem> _navItems = [
@@ -346,6 +330,8 @@ class NavigationItem {
 
 // Modern Dashboard Overview
 class ModernDashboardOverview extends StatefulWidget {
+  const ModernDashboardOverview({super.key});
+
   @override
   _ModernDashboardOverviewState createState() =>
       _ModernDashboardOverviewState();
@@ -1275,6 +1261,7 @@ class _EnhancedGenericListPageState extends State<EnhancedGenericListPage> {
 // New Pages for Missing Tables
 
 // Add responsive dialogs
+// ignore: unused_element
 void _showResponsiveDialog(BuildContext context, Widget content) {
   final size = MediaQuery.of(context).size;
   final width = size.width;
